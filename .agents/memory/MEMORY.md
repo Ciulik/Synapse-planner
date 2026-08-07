@@ -1,0 +1,1 @@
+- [Extraction provider setup](extraction-provider.md) — preserve the extract_ideas contract and fail clearly when no provider is configured.

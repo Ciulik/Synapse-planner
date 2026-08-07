@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: extraction
+    description: Meeting idea extraction operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /extract-ideas:
+    post:
+      operationId: extractIdeas
+      tags: [extraction]
+      summary: Extract actionable ideas from meeting notes
+      description: Sends meeting notes and team context to the existing extract_ideas logic and returns domain-tagged ideas.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExtractIdeasInput"
+      responses:
+        "200":
+          description: Extracted actionable ideas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdeasExtractionResult"
+        "400":
+          description: Invalid extraction input
+        "503":
+          description: Extraction provider is not configured
 components:
   schemas:
     HealthStatus:
@@ -33,4 +58,46 @@ components:
           type: string
       required:
         - status
+    TeamMember:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          enum: [technical, design, product, marketing, ops]
+      required: [name, role]
+    ExtractIdeasInput:
+      type: object
+      properties:
+        notes:
+          type: string
+          minLength: 1
+        team:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamMember"
+      required: [notes, team]
+    ExtractedIdea:
+      type: object
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        domain:
+          type: string
+          enum: [technical, design, product, marketing, ops]
+        source_snippet:
+          type: string
+      required: [id, description, domain]
+    IdeasExtractionResult:
+      type: object
+      properties:
+        ideas:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExtractedIdea"
+      required: [ideas]
 

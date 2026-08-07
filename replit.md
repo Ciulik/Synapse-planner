@@ -1,6 +1,6 @@
-# [Project name]
+# Synapse
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Synapse turns raw team meeting notes into a focused list of actionable, domain-tagged ideas.
 
 ## Run & Operate
 
@@ -22,23 +22,29 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/synapse/src/pages/home.tsx` — the main team setup, notes, and extracted-plan flow
+- `artifacts/synapse/src/index.css` — Synapse's visual language and responsive styling
+- `lib/api-spec/openapi.yaml` — source of truth for the extraction request/response contract
+- `artifacts/api-server/src/routes/extract-ideas.ts` — extraction transport and explicit provider error
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Team members and notes remain local in the first version; no persistence layer is needed for this focused workflow.
+- The extraction endpoint keeps the existing `extract_ideas` shape and fails explicitly when no provider is configured rather than returning fabricated ideas.
+- The frontend uses generated API client types and hooks from the OpenAPI contract.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Users can add team members with domain roles, paste raw meeting notes, generate an extraction plan, and review each idea with its domain and source snippet.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+Keep the product minimal and notes-app-like: generous whitespace, low clutter, and clear domain tags.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Run `pnpm --filter @workspace/api-spec run codegen` after changing the OpenAPI contract.
+- The extraction provider must be configured before Generate plan can return ideas.
 
 ## Pointers
 
