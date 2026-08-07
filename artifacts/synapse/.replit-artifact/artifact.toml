@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Synapse"
+description = "A focused meeting-notes workspace that lets teams define members, paste raw notes, and turn them into a clear, domain-tagged plan using the existing idea extraction contract."
+version = "1.0.0"
+id = "artifacts/synapse"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22167
+
+[services.development]
+run = "pnpm --filter @workspace/synapse run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/synapse", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/synapse/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22167"
+BASE_PATH = "/"
