@@ -48,6 +48,17 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
+function getExtractionErrorMessage(error: unknown): string {
+  if (error && typeof error === 'object') {
+    const data = (error as { data?: unknown }).data;
+    if (data && typeof data === 'object' && 'error' in data) {
+      const message = (data as { error?: unknown }).error;
+      if (typeof message === 'string' && message.trim()) return message;
+    }
+  }
+  return "We couldn't shape this round. Your notes are still here.";
+}
+
 function Home() {
   const [members, setMembers] = useState<Member[]>([]);
   const [memberName, setMemberName] = useState('');
@@ -192,8 +203,10 @@ function Home() {
           {extractIdeas.isError && !extractIdeas.isPending && (
             <div className="error-state mt-8" role="alert" data-testid="status-extraction-error">
               <div>
-                <p className="font-semibold text-ink">The threads got tangled.</p>
-                <p className="mt-1 text-[13px] text-ink-muted">We couldn't shape this round. Your notes are still here.</p>
+                <p className="font-semibold text-ink">Gemini needs attention.</p>
+                <p className="mt-1 max-w-[620px] text-[13px] leading-5 text-ink-muted">
+                  {getExtractionErrorMessage(extractIdeas.error)}
+                </p>
               </div>
               <button type="button" onClick={generatePlan} className="retry-button" data-testid="button-retry-extraction">
                 <RotateCcw size={14} /> Try again

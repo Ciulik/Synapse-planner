@@ -44,7 +44,7 @@ Keep the product minimal and notes-app-like: generous whitespace, low clutter, a
 ## Gotchas
 
 - Run `pnpm --filter @workspace/api-spec run codegen` after changing the OpenAPI contract.
-- The extraction provider must be configured before Generate plan can return ideas.
+- The extraction provider must have available Gemini quota before Generate plan can return ideas.
 
 ## Pointers
 
