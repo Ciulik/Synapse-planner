@@ -3,7 +3,7 @@ import { ExtractIdeasBody, ExtractIdeasResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-const extractionModel = "gemini-3.1-pro-preview";
+const extractionModel = "gemini-2.5-flash-lite";
 const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${extractionModel}:generateContent`;
 
 function buildExtractionPrompt(notes: string, team: unknown): string {
@@ -99,21 +99,30 @@ router.post("/extract-ideas", async (req, res) => {
     }).finally(() => clearTimeout(timeout));
 
     if (!response.ok) {
-      const providerError = (await response.json().catch(() => null)) as
-        | { error?: { status?: string; message?: string } }
-        | null;
+      const rawError = await response.text();
+      let providerStatus: string | undefined;
+      let providerMessage: string | undefined;
+      try {
+        const parsedError = JSON.parse(rawError) as {
+          error?: { status?: string; message?: string };
+        };
+        providerStatus = parsedError.error?.status;
+        providerMessage = parsedError.error?.message;
+      } catch {
+        // Preserve the raw provider body even when it is not JSON.
+      }
       req.log.warn(
         {
           statusCode: response.status,
-          providerStatus: providerError?.error?.status,
-          providerMessage: providerError?.error?.message,
+          providerStatus,
+          providerMessage,
         },
         "Gemini extraction request failed",
       );
-      res.status(response.status === 429 ? 429 : 502).json({
-        error:
-          providerError?.error?.message ??
-          "Gemini could not process these notes. Check the API key and try again.",
+      res.status(response.status).json({
+        error: rawError,
+        rawError,
+        statusCode: response.status,
       });
       return;
     }

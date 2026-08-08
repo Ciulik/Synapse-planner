@@ -59,6 +59,20 @@ function getExtractionErrorMessage(error: unknown): string {
   return "We couldn't shape this round. Your notes are still here.";
 }
 
+function getExtractionErrorDetails(error: unknown): { statusCode?: number; rawError?: string } {
+  if (error && typeof error === 'object') {
+    const data = (error as { data?: unknown }).data;
+    if (data && typeof data === 'object') {
+      const details = data as { statusCode?: unknown; rawError?: unknown };
+      return {
+        statusCode: typeof details.statusCode === 'number' ? details.statusCode : undefined,
+        rawError: typeof details.rawError === 'string' ? details.rawError : undefined,
+      };
+    }
+  }
+  return {};
+}
+
 function Home() {
   const [members, setMembers] = useState<Member[]>([]);
   const [memberName, setMemberName] = useState('');
@@ -202,11 +216,25 @@ function Home() {
           {extractIdeas.isPending && <LoadingState />}
           {extractIdeas.isError && !extractIdeas.isPending && (
             <div className="error-state mt-8" role="alert" data-testid="status-extraction-error">
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold text-ink">Gemini needs attention.</p>
-                <p className="mt-1 max-w-[620px] text-[13px] leading-5 text-ink-muted">
-                  {getExtractionErrorMessage(extractIdeas.error)}
-                </p>
+                {(() => {
+                  const details = getExtractionErrorDetails(extractIdeas.error);
+                  return (
+                    <>
+                      <p className="mt-1 max-w-[620px] text-[13px] leading-5 text-ink-muted">
+                        {details.statusCode
+                          ? `Gemini returned HTTP ${details.statusCode}.`
+                          : getExtractionErrorMessage(extractIdeas.error)}
+                      </p>
+                      {details.rawError && (
+                        <pre className="mt-3 max-h-40 max-w-[680px] overflow-auto whitespace-pre-wrap rounded-md border border-line bg-white/50 p-3 font-mono text-[11px] leading-5 text-ink-muted">
+                          {details.rawError}
+                        </pre>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               <button type="button" onClick={generatePlan} className="retry-button" data-testid="button-retry-extraction">
                 <RotateCcw size={14} /> Try again
