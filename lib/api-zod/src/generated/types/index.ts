@@ -11,5 +11,8 @@ export * from './extractedIdeaDomain';
 export * from './extractIdeasInput';
 export * from './healthStatus';
 export * from './ideasExtractionResult';
+export * from './planResult';
+export * from './scoredAssignedIdea';
+export * from './scoredAssignedIdeaDomain';
 export * from './teamMember';
 export * from './teamMemberRole';

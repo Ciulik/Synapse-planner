@@ -5,6 +5,20 @@ const router: IRouter = Router();
 
 const extractionModel = "gemini-3.5-flash-lite";
 const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${extractionModel}:generateContent`;
+const domains = ["technical", "design", "product", "marketing", "ops"] as const;
+type IdeaDomain = (typeof domains)[number];
+
+type RawIdea = {
+  id: string;
+  description: string;
+  domain: IdeaDomain;
+  source_snippet?: string;
+};
+
+type ScoredIdea = RawIdea & {
+  score: number;
+  assigned_to: string | null;
+};
 
 function buildExtractionPrompt(notes: string, team: unknown): string {
   return `You are Synapse's idea-extraction engine. Extract every distinct actionable idea or task mentioned in the raw meeting notes below. Merge duplicates or near-duplicates into one entry. Tag each with the domain it most relates to: technical, design, product, marketing, or ops.
@@ -30,6 +44,98 @@ ${JSON.stringify(team)}
 
 Raw meeting notes:
 ${notes}`;
+}
+
+function inferBasePriority(idea: RawIdea): 1 | 2 | 3 {
+  const context = `${idea.description} ${idea.source_snippet ?? ""}`;
+
+  if (
+    /\b(urgent|urgently|asap|immediately|critical|blocker|blocking|must|first|before anything else|today|now)\b/i.test(
+      context,
+    )
+  ) {
+    return 3;
+  }
+
+  if (
+    /\b(deadline|by friday|by monday|by tuesday|by wednesday|by thursday|by saturday|by sunday|next week|next thursday|this week|launch|notice|soon)\b/i.test(
+      context,
+    )
+  ) {
+    return 2;
+  }
+
+  return 1;
+}
+
+function parseRawIdeas(value: unknown): RawIdea[] {
+  if (!value || typeof value !== "object" || !Array.isArray((value as { ideas?: unknown }).ideas)) {
+    throw new Error("Gemini extraction did not return an ideas array.");
+  }
+
+  return (value as { ideas: unknown[] }).ideas.map((idea, index) => {
+    if (!idea || typeof idea !== "object") {
+      throw new Error(`Gemini returned an invalid idea at index ${index}.`);
+    }
+
+    const candidate = idea as Record<string, unknown>;
+    if (
+      typeof candidate.id !== "string" ||
+      typeof candidate.description !== "string" ||
+      !domains.includes(candidate.domain as IdeaDomain)
+    ) {
+      throw new Error(`Gemini returned an invalid idea at index ${index}.`);
+    }
+
+    return {
+      id: candidate.id,
+      description: candidate.description,
+      domain: candidate.domain as IdeaDomain,
+      ...(typeof candidate.source_snippet === "string"
+        ? { source_snippet: candidate.source_snippet }
+        : {}),
+    };
+  });
+}
+
+function scoreAndAssignIdeas(
+  ideas: RawIdea[],
+  team: Array<{ name: string; role: IdeaDomain }>,
+): ScoredIdea[] {
+  return ideas
+    .map((idea) => {
+      const assignedMember = team.find((member) => member.role === idea.domain);
+      const basePriority = inferBasePriority(idea);
+      const domainMatchWeight = assignedMember ? 2 : 1;
+
+      return {
+        ...idea,
+        score: basePriority * domainMatchWeight,
+        assigned_to: assignedMember?.name ?? null,
+      };
+    })
+    .sort((left, right) => right.score - left.score);
+}
+
+function buildArguerPrompt(
+  notes: string,
+  team: Array<{ name: string; role: IdeaDomain }>,
+  ideas: ScoredIdea[],
+): string {
+  return `Review this complete Synapse plan after extraction, scoring, and owner assignment. Identify at most 2-3 genuine risks or gaps: contradictions between ideas, missing owners, or unrealistic timing. Do not invent risks if the plan is genuinely solid. Return only valid JSON in this shape:
+
+{
+  "risks": ["A short, concrete risk or gap"]
+}
+
+Raw meeting notes:
+${notes}
+
+Team:
+${JSON.stringify(team)}
+
+Scored and assigned plan:
+${JSON.stringify(ideas)}`;
 }
 
 router.post("/extract-ideas", async (req, res) => {
@@ -137,7 +243,92 @@ router.post("/extract-ideas", async (req, res) => {
       return;
     }
 
-    const result = ExtractIdeasResponse.parse(JSON.parse(text));
+    const rawIdeas = parseRawIdeas(JSON.parse(text));
+    const scoredIdeas = scoreAndAssignIdeas(rawIdeas, parsed.data.team);
+
+    const arguerController = new AbortController();
+    const arguerTimeout = setTimeout(() => arguerController.abort(), 30_000);
+    const arguerResponse = await fetch(geminiEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      signal: arguerController.signal,
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [
+            {
+              text:
+                "You are Synapse's arguer pass. Be skeptical but fair. Find only genuine risks or gaps in the plan. Never invent a risk just to fill the list.",
+            },
+          ],
+        },
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: buildArguerPrompt(
+                  parsed.data.notes,
+                  parsed.data.team,
+                  scoredIdeas,
+                ),
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0,
+          maxOutputTokens: 8192,
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              risks: {
+                type: "ARRAY",
+                maxItems: 3,
+                items: { type: "STRING" },
+              },
+            },
+            required: ["risks"],
+          },
+        },
+      }),
+    }).finally(() => clearTimeout(arguerTimeout));
+
+    if (!arguerResponse.ok) {
+      const rawError = await arguerResponse.text();
+      req.log.warn(
+        { statusCode: arguerResponse.status, rawError },
+        "Gemini arguer request failed",
+      );
+      res.status(arguerResponse.status).json({
+        error: rawError,
+        rawError,
+        statusCode: arguerResponse.status,
+      });
+      return;
+    }
+
+    const arguerPayload = (await arguerResponse.json()) as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+    const arguerText = arguerPayload.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!arguerText) {
+      req.log.warn("Gemini arguer returned no content");
+      res.status(502).json({ error: "Gemini returned an empty risk review. Try again." });
+      return;
+    }
+
+    const arguerResult = JSON.parse(arguerText) as { risks?: unknown };
+    const risks = Array.isArray(arguerResult.risks)
+      ? arguerResult.risks.filter(
+          (risk): risk is string => typeof risk === "string",
+        ).slice(0, 3)
+      : [];
+
+    const result = ExtractIdeasResponse.parse({ ideas: scoredIdeas, risks });
     res.json(result);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {

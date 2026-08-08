@@ -18,7 +18,14 @@ import {
 
 type Role = 'technical' | 'design' | 'product' | 'marketing' | 'ops';
 type Member = { name: string; role: Role };
-type Idea = { id: string; description: string; domain: Role; source_snippet?: string };
+type Idea = {
+  id: string;
+  description: string;
+  domain: Role;
+  source_snippet?: string;
+  score: number;
+  assigned_to: string | null;
+};
 
 const roles: { value: Role; label: string; short: string }[] = [
   { value: 'technical', label: 'Technical', short: 'Tech' },
@@ -79,6 +86,7 @@ function Home() {
   const [memberRole, setMemberRole] = useState<Role>('product');
   const [notes, setNotes] = useState('');
   const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [risks, setRisks] = useState<string[]>([]);
   const extractIdeas = useExtractIdeas();
 
   const canGenerate = notes.trim().length > 0;
@@ -105,7 +113,8 @@ function Home() {
       { data: { notes: notes.trim(), team: members } },
       {
         onSuccess: (result) => {
-          setIdeas(result.ideas as Idea[]);
+          setIdeas(result.ideas);
+          setRisks(result.risks);
         },
       },
     );
@@ -114,6 +123,7 @@ function Home() {
   const resetWorkspace = () => {
     setNotes('');
     setIdeas([]);
+    setRisks([]);
     extractIdeas.reset();
   };
 
@@ -242,7 +252,7 @@ function Home() {
             </div>
           )}
           {!extractIdeas.isPending && !extractIdeas.isError && ideas.length > 0 && (
-            <IdeasResults ideas={ideas} onClear={resetWorkspace} />
+            <IdeasResults ideas={ideas} risks={risks} onClear={resetWorkspace} />
           )}
           {!extractIdeas.isPending && !extractIdeas.isError && ideas.length === 0 && (
             <div className="empty-plan mt-12 reveal-in" style={{ animationDelay: '320ms' }} data-testid="empty-plan-state">
@@ -348,7 +358,15 @@ function LoadingState() {
   );
 }
 
-function IdeasResults({ ideas, onClear }: { ideas: Idea[]; onClear: () => void }) {
+function IdeasResults({
+  ideas,
+  risks,
+  onClear,
+}: {
+  ideas: Idea[];
+  risks: string[];
+  onClear: () => void;
+}) {
   return (
     <section className="mt-16" data-testid="section-extracted-plan">
       <div className="mb-5 flex items-end justify-between gap-4">
@@ -370,6 +388,10 @@ function IdeasResults({ ideas, onClear }: { ideas: Idea[]; onClear: () => void }
                 <div className="min-w-0 flex-1">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
                     <span className={`domain-tag ${domain.className}`}><span className={`h-1.5 w-1.5 rounded-full ${domain.dot}`} />{domain.label}</span>
+                    <span className="plan-meta">Score {idea.score}</span>
+                    <span className={`plan-owner ${idea.assigned_to ? '' : 'plan-owner-unassigned'}`}>
+                      {idea.assigned_to ? `Assigned to ${idea.assigned_to}` : 'Unassigned'}
+                    </span>
                   </div>
                   <p className="max-w-[650px] text-[15px] font-medium leading-6 text-ink" data-testid={`text-idea-description-${idea.id}`}>{idea.description}</p>
                   {idea.source_snippet && (
@@ -384,6 +406,27 @@ function IdeasResults({ ideas, onClear }: { ideas: Idea[]; onClear: () => void }
           );
         })}
       </div>
+      {risks.length > 0 && (
+        <section className="arguer-panel reveal-in" data-testid="section-arguer-risks">
+          <div className="arguer-heading">
+            <div>
+              <div className="eyebrow"><span className="eyebrow-line" /> arguer flagged</div>
+              <p className="mt-2 text-[13px] leading-5 text-ink-muted">
+                A second pass found a few things worth pressure-testing.
+              </p>
+            </div>
+            <span className="arguer-count">{risks.length}</span>
+          </div>
+          <ul className="arguer-list">
+            {risks.map((risk, index) => (
+              <li key={`${risk}-${index}`} data-testid={`text-arguer-risk-${index}`}>
+                <span className="arguer-bullet" />
+                <span>{risk}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </section>
   );
 }

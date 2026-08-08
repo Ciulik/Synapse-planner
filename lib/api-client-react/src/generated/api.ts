@@ -22,7 +22,7 @@ import type {
 import type {
   ExtractIdeasInput,
   HealthStatus,
-  IdeasExtractionResult
+  PlanResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -142,9 +142,9 @@ export const getExtractIdeasUrl = () => {
  * Sends meeting notes and team context to the existing extract_ideas logic and returns domain-tagged ideas.
  * @summary Extract actionable ideas from meeting notes
  */
-export const extractIdeas = async (extractIdeasInput: ExtractIdeasInput, options?: Parameters<typeof customFetch>[1]): Promise<IdeasExtractionResult> => {
+export const extractIdeas = async (extractIdeasInput: ExtractIdeasInput, options?: Parameters<typeof customFetch>[1]): Promise<PlanResult> => {
 
-  return customFetch<IdeasExtractionResult>(getExtractIdeasUrl(),
+  return customFetch<PlanResult>(getExtractIdeasUrl(),
   {
     ...options,
     method: 'POST',

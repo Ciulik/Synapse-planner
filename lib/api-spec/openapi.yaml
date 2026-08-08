@@ -44,7 +44,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/IdeasExtractionResult"
+                $ref: "#/components/schemas/PlanResult"
         "400":
           description: Invalid extraction input
         "503":
@@ -100,4 +100,35 @@ components:
           items:
             $ref: "#/components/schemas/ExtractedIdea"
       required: [ideas]
+    ScoredAssignedIdea:
+      type: object
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        domain:
+          type: string
+          enum: [technical, design, product, marketing, ops]
+        source_snippet:
+          type: string
+        score:
+          type: number
+          minimum: 1
+          maximum: 6
+        assigned_to:
+          type: ["string", "null"]
+      required: [id, description, domain, score, assigned_to]
+    PlanResult:
+      type: object
+      properties:
+        ideas:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScoredAssignedIdea"
+        risks:
+          type: array
+          items:
+            type: string
+      required: [ideas, risks]
 

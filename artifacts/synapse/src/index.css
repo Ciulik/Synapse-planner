@@ -422,6 +422,10 @@ button:disabled { cursor: not-allowed; }
 .idea-card:hover { border-color: #cbbd9f; box-shadow: 0 8px 22px rgba(51,58,45,.06); transform: translateY(-2px); }
 .idea-index { width: 25px; flex: 0 0 25px; padding-top: 4px; color: #bba985; font-family: var(--app-font-mono); font-size: 10px; }
 .domain-tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 5px; font-family: var(--app-font-mono); font-size: 9px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
+.plan-meta, .plan-owner { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border: 1px solid #ddd5c4; border-radius: 5px; color: #7a766b; font-family: var(--app-font-mono); font-size: 9px; letter-spacing: .04em; }
+.plan-meta { border-color: #d8c18d; background: #f6edcf; color: #856d32; }
+.plan-owner { background: rgba(231, 239, 230, .7); border-color: #cbd9c9; color: #5c7660; }
+.plan-owner-unassigned { background: rgba(248, 239, 232, .72); border-color: #e3cabc; color: #9a705e; }
 .tag-technical { background: #dce8e2; color: #486861; }
 .tag-design { background: #f2ddd1; color: #9a604b; }
 .tag-product { background: #eee7c7; color: #85702d; }
@@ -429,6 +433,12 @@ button:disabled { cursor: not-allowed; }
 .tag-ops { background: #dfe9d8; color: #59704e; }
 .idea-check { display: grid; place-items: center; width: 25px; height: 25px; flex: 0 0 25px; border: 1px solid #d9d2c3; border-radius: 50%; color: transparent; transition: color .2s, background .2s, border .2s; }
 .idea-check:hover { color: #5d7b70; border-color: #acc1b7; background: #e5eee7; }
+.arguer-panel { margin-top: 18px; padding: 19px; border: 1px solid #dbcbbd; border-radius: 12px; background: rgba(248, 238, 231, .56); }
+.arguer-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.arguer-count { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: #f0d8ca; color: #995f4a; font-family: var(--app-font-mono); font-size: 10px; }
+.arguer-list { display: grid; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px dashed #dfcbbd; }
+.arguer-list li { display: flex; align-items: flex-start; gap: 10px; color: #705c52; font-size: 13px; line-height: 1.5; }
+.arguer-bullet { width: 6px; height: 6px; flex: 0 0 6px; margin-top: 7px; border-radius: 50%; background: #bd7b60; box-shadow: 0 0 0 4px rgba(189,123,96,.1); }
 .reveal-in { animation: rise-in .65s both cubic-bezier(.2,.8,.2,1); }
 @keyframes rise-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }

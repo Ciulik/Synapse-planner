@@ -33,13 +33,20 @@ export const ExtractIdeasBody = zod.object({
 }))
 })
 
+export const extractIdeasResponseIdeasItemScoreMax = 6;
+
+
+
 export const ExtractIdeasResponse = zod.object({
   "ideas": zod.array(zod.object({
   "id": zod.string(),
   "description": zod.string(),
   "domain": zod.enum(['technical', 'design', 'product', 'marketing', 'ops']),
-  "source_snippet": zod.string().optional()
-}))
+  "source_snippet": zod.string().optional(),
+  "score": zod.number().min(1).max(extractIdeasResponseIdeasItemScoreMax),
+  "assigned_to": zod.string().nullable()
+})),
+  "risks": zod.array(zod.string())
 })
 
 

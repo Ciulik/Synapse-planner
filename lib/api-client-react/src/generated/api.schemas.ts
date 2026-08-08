@@ -54,3 +54,33 @@ export interface IdeasExtractionResult {
   ideas: ExtractedIdea[];
 }
 
+export type ScoredAssignedIdeaDomain = typeof ScoredAssignedIdeaDomain[keyof typeof ScoredAssignedIdeaDomain];
+
+
+export const ScoredAssignedIdeaDomain = {
+  technical: 'technical',
+  design: 'design',
+  product: 'product',
+  marketing: 'marketing',
+  ops: 'ops',
+} as const;
+
+export interface ScoredAssignedIdea {
+  id: string;
+  description: string;
+  domain: ScoredAssignedIdeaDomain;
+  source_snippet?: string;
+  /**
+     * @minimum 1
+     * @maximum 6
+     */
+  score: number;
+  /** @nullable */
+  assigned_to: string | null;
+}
+
+export interface PlanResult {
+  ideas: ScoredAssignedIdea[];
+  risks: string[];
+}
+
