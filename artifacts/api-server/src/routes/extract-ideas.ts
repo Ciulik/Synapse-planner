@@ -3,7 +3,7 @@ import { ExtractIdeasBody, ExtractIdeasResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-const extractionModel = "gemini-2.5-flash-lite";
+const extractionModel = "gemini-3-flash";
 const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${extractionModel}:generateContent`;
 
 function buildExtractionPrompt(notes: string, team: unknown): string {
