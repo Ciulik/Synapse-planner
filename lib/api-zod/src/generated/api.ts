@@ -5,48 +5,48 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import * as zod from 'zod';
-
+import * as zod from "zod";
 
 /**
  * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
-  "status": zod.string()
-})
-
+  status: zod.string(),
+});
 
 /**
  * Sends meeting notes and team context to the existing extract_ideas logic and returns domain-tagged ideas.
  * @summary Extract actionable ideas from meeting notes
  */
 
-
-
-
 export const ExtractIdeasBody = zod.object({
-  "notes": zod.string().min(1),
-  "team": zod.array(zod.object({
-  "name": zod.string().min(1),
-  "role": zod.enum(['technical', 'design', 'product', 'marketing', 'ops'])
-}))
-})
+  notes: zod.string().min(1),
+  team: zod.array(
+    zod.object({
+      name: zod.string().min(1),
+      role: zod.enum(["technical", "design", "product", "marketing", "ops"]),
+    }),
+  ),
+});
 
 export const extractIdeasResponseIdeasItemScoreMax = 6;
 
-
-
 export const ExtractIdeasResponse = zod.object({
-  "ideas": zod.array(zod.object({
-  "id": zod.string(),
-  "description": zod.string(),
-  "domain": zod.enum(['technical', 'design', 'product', 'marketing', 'ops']),
-  "source_snippet": zod.string().optional(),
-  "score": zod.number().min(1).max(extractIdeasResponseIdeasItemScoreMax),
-  "assigned_to": zod.string().nullable()
-})),
-  "risks": zod.array(zod.string())
-})
-
-
+  ideas: zod.array(
+    zod.object({
+      id: zod.string(),
+      description: zod.string(),
+      domain: zod.enum(["technical", "design", "product", "marketing", "ops"]),
+      source_snippet: zod.string().optional(),
+      score: zod.number().min(1).max(extractIdeasResponseIdeasItemScoreMax),
+      assigned_to: zod.string().nullable(),
+    }),
+  ),
+  risks: zod.array(
+    zod.object({
+      issue: zod.string(),
+      fix: zod.string(),
+    }),
+  ),
+});
