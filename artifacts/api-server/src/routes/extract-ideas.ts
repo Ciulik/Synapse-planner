@@ -128,18 +128,20 @@ function buildArguerPrompt(
   team: Array<{ name: string; role: IdeaDomain }>,
   ideas: ScoredIdea[],
 ): string {
-  return `Review this complete Synapse plan after extraction, scoring, and owner assignment. Identify at most 2-3 genuine risks or gaps: contradictions between ideas, missing owners, or unrealistic timing. Do not invent risks if the plan is genuinely solid. Return only valid JSON in this shape:
-
+  return `Review this complete Synapse plan after extraction, scoring, and owner assignment. Identify at most 2-3 genuine risks or gaps: contradictions between ideas, missing owners, or unrealistic timing. For each risk, also suggest one concrete, actionable fix — something the team could actually do, not a vague suggestion. Do not invent risks if the plan is genuinely solid.
+Return only valid JSON in this shape:
 {
-  "risks": ["A short, concrete risk or gap"]
+  "risks": [
+    {
+      "issue": "A short, concrete risk or gap",
+      "fix": "A specific, actionable suggestion to resolve it"
+    }
+  ]
 }
-
 Raw meeting notes:
 ${notes}
-
 Team:
 ${JSON.stringify(team)}
-
 Scored and assigned plan:
 ${JSON.stringify(ideas)}`;
 }
@@ -324,7 +326,14 @@ router.post("/extract-ideas", async (req, res) => {
               risks: {
                 type: "ARRAY",
                 maxItems: 3,
-                items: { type: "STRING" },
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    issue: { type: "STRING" },
+                    fix: { type: "STRING" },
+                  },
+                  required: ["issue", "fix"],
+                },
               },
             },
             required: ["risks"],
@@ -362,7 +371,13 @@ router.post("/extract-ideas", async (req, res) => {
     const arguerResult = JSON.parse(arguerText) as { risks?: unknown };
     const risks = Array.isArray(arguerResult.risks)
       ? arguerResult.risks
-          .filter((risk): risk is string => typeof risk === "string")
+          .filter(
+            (risk): risk is { issue: string; fix: string } =>
+              !!risk &&
+              typeof risk === "object" &&
+              typeof (risk as any).issue === "string" &&
+              typeof (risk as any).fix === "string",
+          )
           .slice(0, 3)
       : [];
 

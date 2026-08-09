@@ -495,7 +495,7 @@ function IdeasResults({
   onClear,
 }: {
   ideas: Idea[];
-  risks: string[];
+  risks: { issue: string; fix: string }[];
   onClear: () => void;
 }) {
   return (
@@ -597,7 +597,12 @@ function IdeasResults({
                 data-testid={`text-arguer-risk-${index}`}
               >
                 <span className="arguer-bullet" />
-                <span>{risk}</span>
+                <span>
+                  <strong>{risk.issue}</strong>
+                  <span className="block mt-1 text-ink-muted">
+                    → {risk.fix}
+                  </span>
+                </span>
               </li>
             ))}
           </ul>
