@@ -147,6 +147,8 @@ ${JSON.stringify(ideas)}`;
 }
 
 router.post("/extract-ideas", async (req, res) => {
+  console.log("DEBUG: route hit");
+
   let notesText = req.body.notes;
 
   if (!notesText && req.body.docUrl) {
@@ -187,6 +189,8 @@ router.post("/extract-ideas", async (req, res) => {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);
+    console.log("DEBUG: about to call Gemini extraction");
+
     const response = await fetch(geminiEndpoint, {
       method: "POST",
       headers: {
@@ -269,7 +273,11 @@ router.post("/extract-ideas", async (req, res) => {
       });
       return;
     }
-
+    console.log(
+      "DEBUG: extraction response status:",
+      response.status,
+      response.ok,
+    );
     const payload = (await response.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     };
