@@ -52,6 +52,14 @@ function inferBasePriority(idea: RawIdea): 1 | 2 | 3 {
   const context = `${idea.description} ${idea.source_snippet ?? ""}`;
 
   if (
+    /\b(not urgent|not important|not a priority|low priority|not critical|no rush|whenever|not needed right now)\b/i.test(
+      context,
+    )
+  ) {
+    return 1;
+  }
+
+  if (
     /\b(urgent|urgently|asap|immediately|critical|blocker|blocking|must|first|before anything else|today|now)\b/i.test(
       context,
     )
