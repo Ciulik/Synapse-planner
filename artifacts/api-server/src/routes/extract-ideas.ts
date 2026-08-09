@@ -145,18 +145,9 @@ ${JSON.stringify(ideas)}`;
 }
 
 router.post("/extract-ideas", async (req, res) => {
-  const parsed = ExtractIdeasBody.safeParse(req.body);
+  let notesText = req.body.notes;
 
-  if (!parsed.success) {
-    res.status(400).json({
-      error:
-        "Provide meeting notes and a valid team list before generating a plan.",
-    });
-    return;
-  }
-
-  let notesText = parsed.data.notes;
-  if (req.body.docUrl) {
+  if (!notesText && req.body.docUrl) {
     try {
       notesText = await fetchGoogleDocText(req.body.docUrl);
     } catch (err) {
@@ -168,6 +159,16 @@ router.post("/extract-ideas", async (req, res) => {
       });
       return;
     }
+  }
+
+  const parsed = ExtractIdeasBody.safeParse({ ...req.body, notes: notesText });
+
+  if (!parsed.success) {
+    res.status(400).json({
+      error:
+        "Provide meeting notes and a valid team list before generating a plan.",
+    });
+    return;
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
