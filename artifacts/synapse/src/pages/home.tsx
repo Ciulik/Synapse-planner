@@ -105,7 +105,7 @@ function Home() {
   const [memberRole, setMemberRole] = useState<Role>("product");
   const [notes, setNotes] = useState("");
   const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [risks, setRisks] = useState<string[]>([]);
+  const [risks, setRisks] = useState<{ issue: string; fix: string }[]>([]);
   const extractIdeas = useExtractIdeas();
 
   const canGenerate = notes.trim().length > 0 || docUrl.trim().length > 0;
@@ -593,7 +593,7 @@ function IdeasResults({
           <ul className="arguer-list">
             {risks.map((risk, index) => (
               <li
-                key={`${risk}-${index}`}
+                key={`${risk.issue}-${index}`}
                 data-testid={`text-arguer-risk-${index}`}
               >
                 <span className="arguer-bullet" />
