@@ -162,6 +162,8 @@ router.post("/extract-ideas", async (req, res) => {
   }
 
   const parsed = ExtractIdeasBody.safeParse({ ...req.body, notes: notesText });
+  console.log("DEBUG notesText:", JSON.stringify(notesText));
+  console.log("DEBUG req.body.docUrl:", req.body.docUrl);
 
   if (!parsed.success) {
     res.status(400).json({
