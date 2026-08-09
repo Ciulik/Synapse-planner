@@ -1,3 +1,5 @@
+import { fetchGoogleDocText } from "./google-doc-fetch";
+
 import { Router, type IRouter } from "express";
 import { ExtractIdeasBody, ExtractIdeasResponse } from "@workspace/api-zod";
 
@@ -69,7 +71,11 @@ function inferBasePriority(idea: RawIdea): 1 | 2 | 3 {
 }
 
 function parseRawIdeas(value: unknown): RawIdea[] {
-  if (!value || typeof value !== "object" || !Array.isArray((value as { ideas?: unknown }).ideas)) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !Array.isArray((value as { ideas?: unknown }).ideas)
+  ) {
     throw new Error("Gemini extraction did not return an ideas array.");
   }
 
@@ -143,9 +149,25 @@ router.post("/extract-ideas", async (req, res) => {
 
   if (!parsed.success) {
     res.status(400).json({
-      error: "Provide meeting notes and a valid team list before generating a plan.",
+      error:
+        "Provide meeting notes and a valid team list before generating a plan.",
     });
     return;
+  }
+
+  let notesText = parsed.data.notes;
+  if (req.body.docUrl) {
+    try {
+      notesText = await fetchGoogleDocText(req.body.docUrl);
+    } catch (err) {
+      res.status(400).json({
+        error:
+          err instanceof Error
+            ? err.message
+            : "Could not read that Google Doc.",
+      });
+      return;
+    }
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -171,7 +193,11 @@ router.post("/extract-ideas", async (req, res) => {
         contents: [
           {
             role: "user",
-            parts: [{ text: buildExtractionPrompt(parsed.data.notes, parsed.data.team) }],
+            parts: [
+              {
+                text: buildExtractionPrompt(notesText, parsed.data.team),
+              },
+            ],
           },
         ],
         generationConfig: {
@@ -190,7 +216,13 @@ router.post("/extract-ideas", async (req, res) => {
                     description: { type: "STRING" },
                     domain: {
                       type: "STRING",
-                      enum: ["technical", "design", "product", "marketing", "ops"],
+                      enum: [
+                        "technical",
+                        "design",
+                        "product",
+                        "marketing",
+                        "ops",
+                      ],
                     },
                     source_snippet: { type: "STRING" },
                   },
@@ -239,7 +271,9 @@ router.post("/extract-ideas", async (req, res) => {
     const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
       req.log.warn("Gemini returned no extraction content");
-      res.status(502).json({ error: "Gemini returned an empty extraction. Try again." });
+      res
+        .status(502)
+        .json({ error: "Gemini returned an empty extraction. Try again." });
       return;
     }
 
@@ -259,8 +293,7 @@ router.post("/extract-ideas", async (req, res) => {
         systemInstruction: {
           parts: [
             {
-              text:
-                "You are Synapse's arguer pass. Be skeptical but fair. Find only genuine risks or gaps in the plan. Never invent a risk just to fill the list.",
+              text: "You are Synapse's arguer pass. Be skeptical but fair. Find only genuine risks or gaps in the plan. Never invent a risk just to fill the list.",
             },
           ],
         },
@@ -317,15 +350,17 @@ router.post("/extract-ideas", async (req, res) => {
     const arguerText = arguerPayload.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!arguerText) {
       req.log.warn("Gemini arguer returned no content");
-      res.status(502).json({ error: "Gemini returned an empty risk review. Try again." });
+      res
+        .status(502)
+        .json({ error: "Gemini returned an empty risk review. Try again." });
       return;
     }
 
     const arguerResult = JSON.parse(arguerText) as { risks?: unknown };
     const risks = Array.isArray(arguerResult.risks)
-      ? arguerResult.risks.filter(
-          (risk): risk is string => typeof risk === "string",
-        ).slice(0, 3)
+      ? arguerResult.risks
+          .filter((risk): risk is string => typeof risk === "string")
+          .slice(0, 3)
       : [];
 
     const result = ExtractIdeasResponse.parse({ ideas: scoredIdeas, risks });
