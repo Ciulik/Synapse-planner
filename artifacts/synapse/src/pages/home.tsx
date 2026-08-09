@@ -137,7 +137,7 @@ function Home() {
         data: {
           notes: notes.trim(),
           team: members,
-          docUrl: docUrl.trim || undefined,
+          docUrl: docUrl.trim() || undefined,
         } as any,
       },
       {
