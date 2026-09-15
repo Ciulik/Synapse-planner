@@ -57,8 +57,38 @@ const domainStyles: Record<
   ops: { label: "Operations", className: "tag-ops", dot: "bg-[#7b9b70]" },
 };
 
-const starterNotes =
-  "We want the first-time experience to feel less like a form and more like an invitation. Priya thinks we should keep the welcome quiet and let the first useful action lead. The engineering team can add a small keyboard shortcut for people who live in this space. Let's test the new review flow with three existing customers next Thursday. Marketing should frame this as making room for better thinking, not as another productivity tool.";
+const EXAMPLES = [
+  {
+    label: "Emergency Sync (High Stress)",
+    notes:
+      "Alright team, emergency alignment. We have a massive schedule bottleneck. Jhon, lock in the master schedule today. Andrei, critical blocker: fix the code bugs crashing the login screen immediately! This is a prerequisite. Also generate staging access credentials for Dsadsa. Later tonight, deploy the core database.",
+    team: [
+      { name: "Andrei", role: "technical" },
+      { name: "Jhon", role: "product" },
+      { name: "Dsadsa", role: "design" },
+    ] as Member[],
+  },
+  {
+    label: "Creative Kickoff (Standard)",
+    notes:
+      "Let's align on the new landing page. Priya, we need the final product requirements by tomorrow. Dsadsa, once you have the requirements, please design the hero section mockups. Mami, start drafting the marketing copy for the headlines next week. Babe, update our ops wiki whenever you have a moment, no rush.",
+    team: [
+      { name: "Priya", role: "product" },
+      { name: "Dsadsa", role: "design" },
+      { name: "Mami", role: "marketing" },
+      { name: "Babe", role: "ops" },
+    ] as Member[],
+  },
+  {
+    label: "Messy Brainstorm (Mixed)",
+    notes:
+      "We want the first-time experience to feel less like a form and more like an invitation. The engineering team can add a small keyboard shortcut for power users. Let's test the new review flow with three existing customers next Thursday. Marketing should frame this as making room for better thinking, not as another productivity tool.",
+    team: [
+      { name: "Elena", role: "technical" },
+      { name: "Marcus", role: "marketing" },
+    ] as Member[],
+  },
+];
 
 function getInitials(name: string) {
   return name
@@ -111,6 +141,15 @@ function Home() {
   const [risks, setRisks] = useState<{ issue: string; fix: string }[]>([]);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [isDark, setIsDark] = useState(false); // <--- State for dark mode
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [sampleIndex, setSampleIndex] = useState(0);
+
+  const loadSample = () => {
+    const sample = EXAMPLES[sampleIndex];
+    setNotes(sample.notes);
+    setMembers(sample.team);
+    setSampleIndex((prev) => (prev + 1) % EXAMPLES.length);
+  };
   const extractIdeas = useExtractIdeas();
 
   const canGenerate = notes.trim().length > 0 || docUrl.trim().length > 0;
@@ -159,6 +198,7 @@ function Home() {
     setIdeas([]);
     setRisks([]);
     setCompletedIds(new Set());
+    setMembers([]);
     extractIdeas.reset();
   };
   const toggleIdea = (id: string) => {
@@ -218,6 +258,7 @@ function Home() {
             type="button"
             aria-label="Help"
             data-testid="button-help"
+            onClick={() => setIsHelpOpen(true)}
           >
             <CircleHelp size={17} strokeWidth={1.8} />
           </button>
@@ -282,12 +323,14 @@ function Home() {
               {!notes && (
                 <button
                   type="button"
-                  onClick={() => setNotes(starterNotes)}
+                  onClick={loadSample}
                   className="sample-notes-button"
                   data-testid="button-use-sample-notes"
                 >
                   <Sparkles size={14} />
-                  Try a sample meeting
+                  {sampleIndex === 0
+                    ? "Try a sample meeting"
+                    : "Try another sample"}
                 </button>
               )}
               <div className="notes-footer">
@@ -482,8 +525,52 @@ function Home() {
 
       <footer className="mx-auto flex w-full max-w-[1440px] items-center justify-between border-t border-line px-5 py-6 text-[11px] text-ink-faint sm:px-8 lg:px-12">
         <span>synapse / a quieter way forward</span>
-        <span className="font-mono tracking-[0.12em]">v.01</span>
+        <span className="font-mono tracking-[0.12em]">v.02</span>
       </footer>
+      {isHelpOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm px-4">
+          <div className="bg-[#f5f1e8] dark:bg-[#131b1c] border border-[#ded8ca] dark:border-[#273839] p-7 rounded-2xl shadow-xl max-w-[500px] w-full relative reveal-in">
+            <button
+              onClick={() => setIsHelpOpen(false)}
+              className="absolute top-4 right-4 text-ink-muted hover:text-ink transition-colors"
+            >
+              <X size={18} />
+            </button>
+            <h3 className="font-display text-[24px] text-ink mb-3">
+              How Synapse Works
+            </h3>
+            <div className="text-[14px] text-ink-muted space-y-4">
+              <p>
+                <strong>The Scoring Engine:</strong> Synapse uses a
+                deterministic mathematical model (Term Frequency) rather than
+                relying on AI guessing. This ensures fast, consistent, and
+                logical task prioritization based on urgency and dependencies.
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>
+                  <strong className="text-ink">Score 5-6 (Critical):</strong>{" "}
+                  Tasks containing blockers, prerequisites, or urgent deadlines
+                  (e.g., "today", "immediately", "blocker").
+                </li>
+                <li>
+                  <strong className="text-ink">Score 3-4 (Standard):</strong>{" "}
+                  Core tasks that need to be done soon but aren't bottlenecking
+                  the pipeline.
+                </li>
+                <li>
+                  <strong className="text-ink">Score 1-2 (Routine):</strong> Low
+                  priority tasks marked with "whenever" or "later".
+                </li>
+              </ul>
+              <p>
+                <strong>Pro Tip:</strong> Add team members and their roles. The
+                engine grants a <em>+1.5 Domain Match Bonus</em> if a task fits
+                someone's expertise perfectly.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -598,14 +685,25 @@ function IdeasResults({
             A plan with a pulse.
           </h2>
         </div>
-        <button
-          type="button"
-          onClick={onClear}
-          className="clear-button"
-          data-testid="button-clear-plan"
-        >
-          <Trash2 size={13} /> Clear
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={copyToClipboard}
+            className="clear-button !text-[#b38c4a] hover:!text-[#8a642c]"
+          >
+            {copied ? <CheckCheck size={14} /> : <Copy size={13} />}
+            {copied ? "Copied!" : "Copy Plan"}
+          </button>
+
+          <button
+            type="button"
+            onClick={onClear}
+            className="clear-button"
+            data-testid="button-clear-plan"
+          >
+            <Trash2 size={13} /> Clear
+          </button>
+        </div>
       </div>
       <div className="idea-list">
         {ideas.map((idea, index) => {
@@ -634,7 +732,7 @@ function IdeasResults({
                     <span
                       className={`plan-meta transition-all duration-300 ${
                         idea.score >= 5
-                          ? "!bg-[#d6a848] !text-white !border-[#b38833] font-bold shadow-sm"
+                          ? "!bg-[#9b624e] !text-white !border-[#754638] font-bold shadow-sm"
                           : idea.score <= 2
                             ? "opacity-50 grayscale"
                             : ""
