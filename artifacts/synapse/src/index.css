@@ -433,6 +433,11 @@ button:disabled { cursor: not-allowed; }
 .tag-ops { background: #dfe9d8; color: #59704e; }
 .idea-check { display: grid; place-items: center; width: 25px; height: 25px; flex: 0 0 25px; border: 1px solid #d9d2c3; border-radius: 50%; color: transparent; transition: color .2s, background .2s, border .2s; }
 .idea-check:hover { color: #5d7b70; border-color: #acc1b7; background: #e5eee7; }
+.idea-check.bg-ink {
+  color: #ffffff !important;
+  background-color: var(--deep-teal) !important;
+  border-color: var(--deep-teal) !important;
+}
 .arguer-panel { margin-top: 18px; padding: 19px; border: 1px solid #dbcbbd; border-radius: 12px; background: rgba(248, 238, 231, .56); }
 .arguer-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
 .arguer-count { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: #f0d8ca; color: #995f4a; font-family: var(--app-font-mono); font-size: 10px; }
@@ -561,4 +566,111 @@ button:disabled { cursor: not-allowed; }
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+}
+/* =========================================
+   DARK MODE OVERRIDES (Synapse Custom UI)
+   ========================================= */
+.dark {
+  --paper: #131b1c;
+  --deep-teal: #e8f0f0;
+  --gold: #b38833;
+  --line: #273839;
+}
+
+.dark .synapse-app {
+  background: radial-gradient(circle at 70% 7%, rgba(231, 189, 104, 0.04), transparent 23rem), var(--paper);
+}
+
+/* Culor text */
+.dark .text-ink { color: var(--deep-teal); }
+.dark .text-ink-muted { color: #829a98; }
+.dark .text-ink-faint { color: #576e6c; }
+.dark .bg-ink { background-color: var(--deep-teal); color: var(--paper); }
+
+/* Card panouri */
+.dark .notes-shell, 
+.dark .member-panel, 
+.dark .idea-card,
+.dark .arguer-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--line);
+}
+
+.dark .notes-shell:focus-within, 
+.dark .notes-shell-active,
+.dark .idea-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: #4a6364;
+}
+
+.dark .notes-input { color: var(--deep-teal); }
+.dark .notes-input::placeholder { color: #576e6c; }
+.dark .notes-footer { border-top-color: var(--line); }
+
+/* Membr */
+.dark .member-row, 
+.dark .member-input {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: var(--line);
+  color: var(--deep-teal);
+}
+
+.dark .add-member-button {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--line);
+  color: var(--deep-teal);
+}
+
+/* Skeletons */
+.dark .skeleton-stack {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: var(--line);
+}
+.dark .skeleton-line {
+  background: linear-gradient(90deg, #1a2526, #273839, #1a2526);
+  background-size: 200% 100%;
+}
+
+/* Buton check  */
+.dark .idea-check.bg-ink {
+  background-color: var(--deep-teal);
+  color: var(--paper) !important;
+  border-color: var(--deep-teal);
+}
+
+/* =========================================
+   COOLDOWN / RATE LIMIT ANIMATION
+   ========================================= */
+.cooldown-panel {
+  border: 1px dashed var(--line);
+  border-radius: 15px;
+  background: rgba(251, 249, 243, 0.4);
+}
+
+.dark .cooldown-panel {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.bouncing-ball {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(209, 156, 88, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  /* Durate diferite pt X și Y creează acel efect de ricoșeu haotic satisfăcător */
+  animation: 
+    bounceX 4s linear infinite alternate, 
+    bounceY 3.2s linear infinite alternate;
+}
+
+@keyframes bounceX {
+  from { left: 0; }
+  to { left: calc(100% - 120px); }
+}
+
+@keyframes bounceY {
+  from { top: 0; }
+  to { top: calc(100% - 120px); }
 }

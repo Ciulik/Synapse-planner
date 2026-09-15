@@ -1,10 +1,19 @@
 import { fetchGoogleDocText } from "./google-doc-fetch";
-
+import rateLimit from "express-rate-limit";
 import { Router, type IRouter } from "express";
 import { ExtractIdeasBody, ExtractIdeasResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
-
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: {
+    error:
+      "Too many generations. Please wait 15 minutes for protecting app's respectable usage limits.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const extractionModel = "gemini-3.5-flash-lite";
 const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${extractionModel}:generateContent`;
 const domains = ["technical", "design", "product", "marketing", "ops"] as const;
@@ -25,7 +34,7 @@ type ScoredIdea = RawIdea & {
 function buildExtractionPrompt(notes: string, team: unknown): string {
   return `You are Synapse's idea-extraction engine. Extract every distinct actionable idea or task mentioned in the raw meeting notes below. Merge duplicates or near-duplicates into one entry. Tag each with the domain it most relates to: technical, design, product, marketing, or ops.
 
-Do not invent ideas that are not present in the notes. If the notes do not mention an actionable idea, return an empty ideas array. The team list provides speaker context only; do not create ideas from team roles alone.
+Do not invent ideas that are not present in the notes. If the notes do not mention an actionable idea, return an empty ideas array. The team list provides speaker context only.
 
 Return only valid JSON matching this shape:
 {
@@ -34,12 +43,10 @@ Return only valid JSON matching this shape:
       "id": "idea-1",
       "description": "A concise actionable description",
       "domain": "technical",
-      "source_snippet": "An exact or near-exact supporting phrase from the notes"
+      "source_snippet": "An exact supporting phrase"
     }
   ]
 }
-
-The required fields for each idea are id, description, and domain. source_snippet is optional.
 
 Team:
 ${JSON.stringify(team)}
@@ -48,34 +55,50 @@ Raw meeting notes:
 ${notes}`;
 }
 
-function inferBasePriority(idea: RawIdea): 1 | 2 | 3 {
-  const context = `${idea.description} ${idea.source_snippet ?? ""}`;
+// --- HEURISTIC SCORING ENGINE ---
+// We use a deterministic mathematical model to calculate task priority.
+// This avoids LLM hallucinations and provides consistent, fast, and testable results.
 
-  if (
-    /\b(not urgent|not important|not a priority|low priority|not critical|no rush|whenever|not needed right now)\b/i.test(
-      context,
-    )
-  ) {
-    return 1;
+// 1. Semantic Weight Dictionary
+const URGENCY_WEIGHTS: Record<string, number> = {
+  "now": 3.0, "today": 3.0, "asap": 3.0, "immediately": 3.0, "urgent": 3.0, "critical": 3.0,
+  "tomorrow": 2.0, "this week": 2.0, "deadline": 2.0, "launch": 2.0,
+  "soon": 1.0, "next week": 1.0, "later": 0.5, "whenever": 0.5
+};
+
+// 2. Blocker Identification
+const BLOCKER_TERMS = ["blocker", "prerequisite", "before", "credentials", "access", "first"];
+
+/**
+ * Calculates the base priority score using Term Frequency and a Blocker Multiplier.
+ * Formula: BaseScore = (Sum of Urgency Weights) * M_blocker
+ */
+function calculateHeuristicScore(idea: RawIdea): { baseScore: number } {
+  // Combine description and snippet for semantic context
+  const context = `${idea.description} ${idea.source_snippet ?? ""}`.toLowerCase();
+
+  let baseScore = 0;
+
+  // Calculate base weight by matching semantic urgency terms
+  for (const [term, weight] of Object.entries(URGENCY_WEIGHTS)) {
+    if (context.includes(term)) {
+      baseScore += weight;
+    }
   }
 
-  if (
-    /\b(urgent|urgently|asap|immediately|critical|blocker|blocking|must|first|before anything else|today|now)\b/i.test(
-      context,
-    )
-  ) {
-    return 3;
+  // Fallback baseline score if no urgency words are found
+  if (baseScore === 0) baseScore = 1.0;
+
+  // Apply the Blocker Multiplier (M_blocker)
+  // Blocking tasks mathematically force their way to the top of the queue
+  for (const term of BLOCKER_TERMS) {
+    if (context.includes(term)) {
+      baseScore *= 1.5; // 50% boost for dependencies
+      break; // Apply multiplier only once
+    }
   }
 
-  if (
-    /\b(deadline|by friday|by monday|by tuesday|by wednesday|by thursday|by saturday|by sunday|next week|next thursday|this week|launch|notice|soon)\b/i.test(
-      context,
-    )
-  ) {
-    return 2;
-  }
-
-  return 1;
+  return { baseScore };
 }
 
 function parseRawIdeas(value: unknown): RawIdea[] {
@@ -112,19 +135,34 @@ function parseRawIdeas(value: unknown): RawIdea[] {
   });
 }
 
+/**
+ * Final Assignment and Score Calculation.
+ * S_final = BaseScore + Gamma(DomainMatch)
+ */
 function scoreAndAssignIdeas(
   ideas: RawIdea[],
   team: Array<{ name: string; role: IdeaDomain }>,
 ): ScoredIdea[] {
+  const w_domainMatch = 1.5; // Gamma constant: Bonus for having the right expert in the room
+
   return ideas
     .map((idea) => {
       const assignedMember = team.find((member) => member.role === idea.domain);
-      const basePriority = inferBasePriority(idea);
-      const domainMatchWeight = assignedMember ? 2 : 1;
+      const metrics = calculateHeuristicScore(idea);
+
+      // Domain Match Step Function
+      const domainBonus = assignedMember ? w_domainMatch : 0;
+
+      // Calculate final score
+      const rawScore = metrics.baseScore + domainBonus;
+
+      // We cap the score at 6 to ensure it perfectly passes your Zod schema validation
+      // (export const extractIdeasResponseIdeasItemScoreMax = 6;)
+      const finalScore = Math.min(Math.round(rawScore), 6); 
 
       return {
         ...idea,
-        score: basePriority * domainMatchWeight,
+        score: Math.max(finalScore, 1), // Ensure minimum score is always at least 1
         assigned_to: assignedMember?.name ?? null,
       };
     })
@@ -154,7 +192,7 @@ Scored and assigned plan:
 ${JSON.stringify(ideas)}`;
 }
 
-router.post("/extract-ideas", async (req, res) => {
+router.post("/extract-ideas", apiLimiter, async (req, res) => {
   console.log("DEBUG: route hit");
 
   let notesText = req.body.notes;

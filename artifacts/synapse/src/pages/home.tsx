@@ -3,14 +3,17 @@ import { useExtractIdeas } from "@workspace/api-client-react";
 import {
   ArrowUpRight,
   Check,
+  CheckCheck,
   ChevronDown,
   CircleHelp,
+  Copy,
   Lightbulb,
   LoaderCircle,
-  Minus,
+  Moon,
   Plus,
   RotateCcw,
   Sparkles,
+  Timer,
   Trash2,
   Users,
   X,
@@ -106,6 +109,8 @@ function Home() {
   const [notes, setNotes] = useState("");
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [risks, setRisks] = useState<{ issue: string; fix: string }[]>([]);
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [isDark, setIsDark] = useState(false); // <--- State for dark mode
   const extractIdeas = useExtractIdeas();
 
   const canGenerate = notes.trim().length > 0 || docUrl.trim().length > 0;
@@ -153,7 +158,27 @@ function Home() {
     setNotes("");
     setIdeas([]);
     setRisks([]);
+    setCompletedIds(new Set());
     extractIdeas.reset();
+  };
+  const toggleIdea = (id: string) => {
+    setCompletedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev;
+      if (next) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+      return next;
+    });
   };
 
   return (
@@ -175,6 +200,19 @@ function Home() {
           <span className="hidden text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-muted sm:inline">
             private workspace
           </span>
+          {/* BUTON DARK MODE */}
+          <button
+            className="quiet-icon-button"
+            type="button"
+            onClick={toggleTheme}
+            aria-label="Toggle Dark Mode"
+          >
+            <Moon
+              size={17}
+              strokeWidth={1.8}
+              className={isDark ? "fill-ink" : ""}
+            />
+          </button>
           <button
             className="quiet-icon-button"
             type="button"
@@ -279,44 +317,30 @@ function Home() {
           </div>
 
           {extractIdeas.isPending && <LoadingState />}
-          {extractIdeas.isError && !extractIdeas.isPending && (
-            <div
-              className="error-state mt-8"
-              role="alert"
-              data-testid="status-extraction-error"
-            >
-              <div className="min-w-0">
-                <p className="font-semibold text-ink">
-                  Gemini needs attention.
-                </p>
-                {(() => {
-                  const details = getExtractionErrorDetails(extractIdeas.error);
-                  return (
-                    <>
-                      <p className="mt-1 max-w-[620px] text-[13px] leading-5 text-ink-muted">
-                        {details.statusCode
-                          ? `Gemini returned HTTP ${details.statusCode}.`
-                          : getExtractionErrorMessage(extractIdeas.error)}
-                      </p>
-                      {details.rawError && (
-                        <pre className="mt-3 max-h-40 max-w-[680px] overflow-auto whitespace-pre-wrap rounded-md border border-line bg-white/50 p-3 font-mono text-[11px] leading-5 text-ink-muted">
-                          {details.rawError}
-                        </pre>
-                      )}
-                    </>
-                  );
-                })()}
+          {extractIdeas.isError &&
+            !extractIdeas.isPending &&
+            (getExtractionErrorDetails(extractIdeas.error).statusCode ===
+            429 ? (
+              <CooldownScreen />
+            ) : (
+              <div className="error-state mt-8 reveal-in" role="alert">
+                <div className="min-w-0">
+                  <p className="font-semibold text-ink">
+                    Gemini needs attention.
+                  </p>
+                  <p className="mt-1 text-[13px] text-ink-muted">
+                    {getExtractionErrorMessage(extractIdeas.error)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={generatePlan}
+                  className="retry-button"
+                >
+                  <RotateCcw size={14} /> Try again
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={generatePlan}
-                className="retry-button"
-                data-testid="button-retry-extraction"
-              >
-                <RotateCcw size={14} /> Try again
-              </button>
-            </div>
-          )}
+            ))}
           {!extractIdeas.isPending &&
             !extractIdeas.isError &&
             ideas.length > 0 && (
@@ -324,6 +348,8 @@ function Home() {
                 ideas={ideas}
                 risks={risks}
                 onClear={resetWorkspace}
+                completedIds={completedIds}
+                onToggleIdea={toggleIdea}
               />
             )}
           {!extractIdeas.isPending &&
@@ -489,15 +515,78 @@ function LoadingState() {
   );
 }
 
+function CooldownScreen() {
+  const [timeLeft, setTimeLeft] = useState(15 * 60);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+
+  return (
+    <div
+      className="cooldown-panel mt-12 reveal-in relative overflow-hidden"
+      data-testid="status-cooldown"
+    >
+      {/* Animația satisfăcătoare pe fundal */}
+      <div className="bouncing-ball" />
+
+      <div className="relative z-10 flex flex-col items-center justify-center py-10 text-center">
+        <Timer size={42} strokeWidth={1.2} className="text-[#c18f4e] mb-4" />
+        <h3 className="font-display text-[26px] text-ink mb-2">
+          Synapse is resting
+        </h3>
+        <p className="max-w-[340px] text-[14px] leading-6 text-ink-muted mb-6">
+          To protect the system, you can only generate a few plans at a time.
+          The room will reopen shortly.
+        </p>
+        <div className="font-mono text-[42px] font-semibold text-ink tracking-tight">
+          {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function IdeasResults({
   ideas,
   risks,
   onClear,
+  completedIds,
+  onToggleIdea,
 }: {
   ideas: Idea[];
   risks: { issue: string; fix: string }[];
   onClear: () => void;
+  completedIds: Set<string>;
+  onToggleIdea: (id: string) => void;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = () => {
+    let md = `Synapse Plan\n\n`;
+    ideas.forEach((idea, i) => {
+      const status = completedIds.has(idea.id) ? "[x]" : "[ ]";
+      md += `${i + 1}. ${status} [${idea.domain.toUpperCase()}] (Score: ${idea.score})\n`;
+      md += `   ${idea.description}\n`;
+      if (idea.assigned_to) md += `   Assigned to: ${idea.assigned_to}\n`;
+      md += `\n`;
+    });
+
+    if (risks.length > 0) {
+      md += `---\n⚠️ Arguer Flagged Risks:\n`;
+      risks.forEach((r) => (md += `- ${r.issue}\n  Fix: ${r.fix}\n`));
+    }
+
+    navigator.clipboard.writeText(md);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
   return (
     <section className="mt-16" data-testid="section-extracted-plan">
       <div className="mb-5 flex items-end justify-between gap-4">
@@ -521,9 +610,11 @@ function IdeasResults({
       <div className="idea-list">
         {ideas.map((idea, index) => {
           const domain = domainStyles[idea.domain] ?? domainStyles.product;
+          const isCompleted = completedIds.has(idea.id);
+
           return (
             <article
-              className="idea-card reveal-in"
+              className={`idea-card reveal-in transition-all duration-300 ${isCompleted ? "opacity-40 grayscale" : ""}`}
               style={{ animationDelay: `${index * 70}ms` }}
               key={idea.id}
               data-testid={`card-extracted-idea-${idea.id}`}
@@ -540,7 +631,17 @@ function IdeasResults({
                       />
                       {domain.label}
                     </span>
-                    <span className="plan-meta">Score {idea.score}</span>
+                    <span
+                      className={`plan-meta transition-all duration-300 ${
+                        idea.score >= 5
+                          ? "!bg-[#d6a848] !text-white !border-[#b38833] font-bold shadow-sm"
+                          : idea.score <= 2
+                            ? "opacity-50 grayscale"
+                            : ""
+                      }`}
+                    >
+                      Score {idea.score}
+                    </span>
                     <span
                       className={`plan-owner ${idea.assigned_to ? "" : "plan-owner-unassigned"}`}
                     >
@@ -563,9 +664,10 @@ function IdeasResults({
                 </div>
                 <button
                   type="button"
-                  className="idea-check"
+                  className={`idea-check transition-colors ${isCompleted ? "bg-ink text-white" : ""}`}
                   aria-label="Mark idea as complete"
                   data-testid={`button-complete-idea-${idea.id}`}
+                  onClick={() => onToggleIdea(idea.id)}
                 >
                   <Check size={14} />
                 </button>
