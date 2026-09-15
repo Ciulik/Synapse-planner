@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useExtractIdeas } from "@workspace/api-client-react";
 import {
   ArrowUpRight,
@@ -738,8 +738,8 @@ function IdeasResults({
                         idea.score >= 5
                           ? "!bg-[#9b624e] !text-white !border-[#754638] font-bold shadow-sm"
                           : idea.score <= 2
-                            ? "opacity-50 grayscale"
-                            : ""
+                            ? "!bg-[#e6e2d8] !text-[#7a7367] !border-[#d1cbc1]"
+                            : "!bg-[#f2efe9] !text-[#5c564d] !border-[#e6dfd3]"
                       }`}
                     >
                       Score {idea.score}

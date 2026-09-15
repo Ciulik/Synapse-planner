@@ -420,7 +420,12 @@ button:disabled { cursor: not-allowed; }
 .idea-list { display: grid; gap: 10px; }
 .idea-card { padding: 19px 19px 20px; border: 1px solid #dfd8c9; border-radius: 12px; background: rgba(251,249,243,.68); transition: border .2s, transform .2s, box-shadow .2s; }
 .idea-card:hover { border-color: #cbbd9f; box-shadow: 0 8px 22px rgba(51,58,45,.06); transform: translateY(-2px); }
-.idea-index { width: 25px; flex: 0 0 25px; padding-top: 4px; color: #bba985; font-family: var(--app-font-mono); font-size: 10px; }
+.idea-index {
+  color: #8c857b !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+  opacity: 1 !important;
+}
 .domain-tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 5px; font-family: var(--app-font-mono); font-size: 9px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
 .plan-meta, .plan-owner { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border: 1px solid #ddd5c4; border-radius: 5px; color: #7a766b; font-family: var(--app-font-mono); font-size: 9px; letter-spacing: .04em; }
 .plan-meta { border-color: #d8c18d; background: #f6edcf; color: #856d32; }
