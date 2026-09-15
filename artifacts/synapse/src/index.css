@@ -674,3 +674,19 @@ button:disabled { cursor: not-allowed; }
   from { top: 0; }
   to { top: calc(100% - 120px); }
 }
+
+.idea-card p {
+  color: #111418 !important; 
+  line-height: 1.65 !important;
+  letter-spacing: -0.01em;
+}
+
+.idea-card .domain-tag {
+  font-weight: 600;
+  border: 1px solid rgba(0,0,0,0.08); 
+}
+
+.plan-owner {
+  color: #4a5568 !important; 
+  font-weight: 500;
+}

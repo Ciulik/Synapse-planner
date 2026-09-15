@@ -104,7 +104,10 @@ function getExtractionErrorMessage(error: unknown): string {
     const data = (error as { data?: unknown }).data;
     if (data && typeof data === "object" && "error" in data) {
       const message = (data as { error?: unknown }).error;
-      if (typeof message === "string" && message.trim()) return message;
+      if (typeof message === "string" && message.trim()) {
+        // Înlocuim automat orice referință la Gemini cu "The engine"
+        return message.replace(/Gemini/g, "The engine");
+      }
     }
   }
   return "We couldn't shape this round. Your notes are still here.";
@@ -362,14 +365,15 @@ function Home() {
           {extractIdeas.isPending && <LoadingState />}
           {extractIdeas.isError &&
             !extractIdeas.isPending &&
-            (getExtractionErrorDetails(extractIdeas.error).statusCode ===
-            429 ? (
+            (getExtractionErrorMessage(extractIdeas.error).includes(
+              "Too many generations",
+            ) ? (
               <CooldownScreen />
             ) : (
               <div className="error-state mt-8 reveal-in" role="alert">
                 <div className="min-w-0">
                   <p className="font-semibold text-ink">
-                    Gemini needs attention.
+                    Synapse encountered an issue.
                   </p>
                   <p className="mt-1 text-[13px] text-ink-muted">
                     {getExtractionErrorMessage(extractIdeas.error)}
