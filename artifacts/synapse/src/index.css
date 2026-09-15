@@ -423,12 +423,30 @@ button:disabled { cursor: not-allowed; }
 .idea-index {
   color: #8c857b !important;
   font-weight: 700 !important;
-  font-size: 15px !important;
+  font-size: 16px !important;
   opacity: 1 !important;
 }
 .domain-tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 5px; font-family: var(--app-font-mono); font-size: 9px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
 .plan-meta, .plan-owner { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border: 1px solid #ddd5c4; border-radius: 5px; color: #7a766b; font-family: var(--app-font-mono); font-size: 9px; letter-spacing: .04em; }
-.plan-meta { border-color: #d8c18d; background: #f6edcf; color: #856d32; }
+.plan-meta {
+  font-size: 13px !important; 
+  padding: 4px 10px !important; 
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+}
+
+.plan-meta[class*="bg-[#9b624e]"] {
+  background-color: #9b624e !important;
+  color: #ffffff !important;
+  border: 1px solid #754638 !important;
+  box-shadow: 0 2px 5px rgba(155, 98, 78, 0.3) !important; 
+}
+
+.plan-meta[class*="bg-[#e6e2d8]"] {
+  background-color: #e6e2d8 !important;
+  color: #5c564d !important;
+  border: 1px solid #d1cbc1 !important;
+}
 .plan-owner { background: rgba(231, 239, 230, .7); border-color: #cbd9c9; color: #5c7660; }
 .plan-owner-unassigned { background: rgba(248, 239, 232, .72); border-color: #e3cabc; color: #9a705e; }
 .tag-technical { background: #dce8e2; color: #486861; }
@@ -681,8 +699,9 @@ button:disabled { cursor: not-allowed; }
 }
 
 .idea-card p {
+  font-size: 16px !important; 
   color: #111418 !important; 
-  line-height: 1.65 !important;
+  line-height: 1.7 !important; 
   letter-spacing: -0.01em;
 }
 
