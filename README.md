@@ -2,8 +2,9 @@
 
 > **Synapse** is a privacy-first task prioritization engine built in a **Node.js/React monorepo** for **product and engineering teams** to instantly distill chaotic meeting notes into stress-tested, actionable workflows.
 
-![Synapse UI Demo](<img width="1223" height="1061" alt="image" src="https://github.com/user-attachments/assets/5ed2865d-aa6b-49e7-904a-b74d89a697f2" />
-)
+![Synapse UI Demo](synapse-idea.png)
+![Synape UI Restructure](synapse-restructure.png)
+![Synapse UI Cooldown](synapse-cooldown.png)
 
 
 ## 🎯 Try it live
