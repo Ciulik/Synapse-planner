@@ -352,7 +352,15 @@ function Home() {
                 <button
                   type="button"
                   onClick={generatePlan}
-                  disabled={!canGenerate || extractIdeas.isPending}
+                  // blocks the button if the 15 minute activation is tunred on
+                  disabled={
+                    !canGenerate ||
+                    extractIdeas.isPending ||
+                    (extractIdeas.isError &&
+                      getExtractionErrorMessage(extractIdeas.error).includes(
+                        "Too many generations",
+                      ))
+                  }
                   className="generate-button"
                   data-testid="button-generate-plan"
                 >
@@ -616,11 +624,28 @@ function LoadingState() {
 }
 
 function CooldownScreen() {
-  const [timeLeft, setTimeLeft] = useState(15 * 60);
+  const [timeLeft, setTimeLeft] = useState(() => {
+    // 1. verify if the browser has the time asved for when it expires
+    const savedEnd = localStorage.getItem("synapse_cooldown_end");
+    if (savedEnd) {
+      const remaining = Math.floor((Number(savedEnd) - Date.now()) / 1000);
+      return remaining > 0 ? remaining : 15 * 60;
+    }
+    // 2. if it doesnt have it saved, we calculate now+15 minutes
+    const newEnd = Date.now() + 15 * 60 * 1000;
+    localStorage.setItem("synapse_cooldown_end", newEnd.toString());
+    return 15 * 60;
+  });
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          localStorage.removeItem("synapse_cooldown_end"); // clear when it expires
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -633,7 +658,6 @@ function CooldownScreen() {
       className="cooldown-panel mt-12 reveal-in relative overflow-hidden"
       data-testid="status-cooldown"
     >
-      {/* Animația satisfăcătoare pe fundal */}
       <div className="bouncing-ball" />
 
       <div className="relative z-10 flex flex-col items-center justify-center py-10 text-center">
