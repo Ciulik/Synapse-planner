@@ -105,7 +105,16 @@ function getExtractionErrorMessage(error: unknown): string {
     if (data && typeof data === "object" && "error" in data) {
       const message = (data as { error?: unknown }).error;
       if (typeof message === "string" && message.trim()) {
-        // Înlocuim automat orice referință la Gemini cu "The engine"
+        // HACK: if Google sends the JSON-ul masiv of maximised quota
+        if (
+          message.includes("RESOURCE_EXHAUSTED") ||
+          message.includes("Quota exceeded")
+        ) {
+          // Return EXACTLY the textul which activates the ball
+          return "Too many generations. Please wait 15 minutes for protecting app's respectable usage limits.";
+        }
+
+        //  Gemini reference chaange with "The engine"
         return message.replace(/Gemini/g, "The engine");
       }
     }
